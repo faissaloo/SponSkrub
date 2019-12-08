@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"Faissal Isslam Bensefia"
+	],
+	"copyright": "Copyright © 2019, Faissal Isslam Bensefia",
+	"description": "automatically cut out a downloaded YouTube video's sponsors",
+	"license": "GPLv3",
+	"name": "sponskrub"
+}

@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/sponskrub
+sponskrub.so
+sponskrub.dylib
+sponskrub.dll
+sponskrub.a
+sponskrub.lib
+sponskrub-test-*
+*.exe
+*.o
+*.obj
+*.lst
