@@ -26,7 +26,7 @@ import core.sys.posix.signal;
 import ffwrap;
 import sponsorblock;
 
-void main(string[] args)
+int main(string[] args)
 {
 	if (args.length < 4) {
 		writeln(
@@ -35,7 +35,7 @@ void main(string[] args)
 SponSkrub is an application for removing sponsors from downloaded Youtube video
  files, it requires an internet connection in order to consult the SponsorBlock
   database and ffmpeg must be installed.");
-		return;
+		return 1;
 	}
 	auto video_id = args[1];
 	auto input_filename = args[2];
@@ -44,6 +44,7 @@ SponSkrub is an application for removing sponsors from downloaded Youtube video
 	auto video_length = get_video_duration(input_filename);
 	if (video_length is null) {
 		writeln("Could not get video duration, is ffmpeg installed?");
+		return 2;
 	}
 	writeln("Downloading video sponsor data");
 	ClipTime[] sponsorTimes;
@@ -56,7 +57,7 @@ SponSkrub is an application for removing sponsors from downloaded Youtube video
 		} else {
 			writeln("Got %s the server must be broken, try again later".format(e.status));
 		}
-		return;
+		return 3;
 	}
 
 	if (sponsorTimes.length > 0) {
@@ -64,11 +65,14 @@ SponSkrub is an application for removing sponsors from downloaded Youtube video
 		auto filter_status = run_ffmpeg_filter(input_filename, output_filename, cut_and_cat_clips_filter(timestampsToKeep(sponsorTimes, video_length)));
 		if (filter_status) {
 			writeln("Done!");
+			return 0;
 		} else {
 			writeln("There was an issue generating the output file, is ffmpeg installed? This could be a bug");
+			return 2;
 		}
 	} else {
 		writeln("Nothing to be done.");
+		return 3;
 	}
 }
 
