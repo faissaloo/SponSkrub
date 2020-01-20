@@ -22,16 +22,23 @@ import std.json;
 import std.algorithm;
 import std.string;
 import std.array;
+import std.conv;
 
 alias ClipTime = Tuple!(string, "start", string, "end");
 
-string stringify_timestamp(float timestamp) {
+string stringify_timestamp(JSONValue raw_timestamp) {
+	double timestamp;
+	if (raw_timestamp.type() == JSONType.integer) {
+		timestamp = raw_timestamp.integer.to!float;
+	} else if (raw_timestamp.type() == JSONType.float_){
+		timestamp = raw_timestamp.floating;
+	}
 	return "%6f".format(timestamp);
 }
 
 ClipTime[] get_video_sponsor_times(string video_id) {
   auto json = parseJSON(get("http://sponsor.ajay.app/api/getVideoSponsorTimes?videoID=%s".format(video_id)));
 	return json["sponsorTimes"].array.map!(
-    clip_times => ClipTime(stringify_timestamp(clip_times[0].floating), stringify_timestamp(clip_times[1].floating))
+    clip_times => ClipTime(stringify_timestamp(clip_times[0]), stringify_timestamp(clip_times[1]))
   ).array;
 }
