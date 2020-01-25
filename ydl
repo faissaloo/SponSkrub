@@ -16,6 +16,6 @@ else
 			;;
 		esac
 	done
-	video_id=$(echo "$1" | sed "s/.*v=\([A-Za-z0-9_]*\).*/\1/g")
+	video_id=$(echo "$1" | sed "s/.*v=\([A-Za-z0-9_-]*\).*/\1/g")
 	youtube-dl -f 18 "$video_id" --exec "sponskrub '$video_id' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" ${@:2}
 fi
