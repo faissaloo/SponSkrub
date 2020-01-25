@@ -1,0 +1,21 @@
+#!/bin/bash
+function show_help {
+	echo "Usage: ydl url_or_video_id [youtube-dl args...]"
+	echo "ydl is a wrapper around sponskrub and youtube-dl that downloads a video then automatically strips the sponsor spots out"
+	exit 1
+}
+
+if [ $# == 0 ]; then
+	show_help
+else
+	while getopts ":h" option; do
+		case "${option}" in
+			h)
+			show_help
+			exit 1
+			;;
+		esac
+	done
+	video_id=$(echo "$1" | sed "s/.*v=\([A-Za-z0-9_]*\).*/\1/g")
+	youtube-dl -f 18 "$video_id" --exec "sponskrub '$video_id' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" ${@:2}
+fi
