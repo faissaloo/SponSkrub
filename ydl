@@ -16,6 +16,12 @@ else
 			;;
 		esac
 	done
-	video_id=$(echo "$1" | sed "s/.*v=\([A-Za-z0-9_-]*\).*/\1/g")
-	youtube-dl -f 18 "$video_id" --exec "sponskrub '$video_id' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" ${@:2}
+	
+	if echo "$1" | grep -P "^(?:https?:\/\/)?(?:www\.)?youtu(?:\.be|be\.com)|[A-Za-z0-9_-]{11}"; then
+		video_id=$(echo "$1" | sed "s/.*v=\([A-Za-z0-9_-]*\).*/\1/g")
+		youtube-dl -f 18 "$video_id" --exec "sponskrub '$video_id' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" ${@:2}
+	else
+		video_id="$1"
+		youtube-dl "$video_id" ${@:2}
+	fi
 fi
