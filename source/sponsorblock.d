@@ -37,7 +37,7 @@ string stringify_timestamp(JSONValue raw_timestamp) {
 }
 
 ClipTime[] get_video_sponsor_times(string video_id) {
-  auto json = parseJSON(get("http://sponsor.ajay.app/api/getVideoSponsorTimes?videoID=%s".format(video_id)));
+  auto json = parseJSON(get("http://api.sponsor.ajay.app/api/getVideoSponsorTimes?videoID=%s".format(video_id)));
 	return json["sponsorTimes"].array.map!(
     clip_times => ClipTime(stringify_timestamp(clip_times[0]), stringify_timestamp(clip_times[1]))
   ).array;
