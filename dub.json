@@ -5,5 +5,31 @@
 	"copyright": "Copyright © 2019, Faissal Isslam Bensefia",
 	"description": "automatically cut out a downloaded YouTube video's sponsors",
 	"license": "GPLv3",
-	"name": "sponskrub"
+	"name": "sponskrub",
+	"configurations": [
+		{
+			"name": "all",
+			"targetType": "none",
+			"dependencies": {
+				"sponskrub:sponskrub": "*",
+				"sponskrub:ydl": "*"
+			}
+		}
+	],
+	"subPackages": [
+		{
+			"name": "sponskrub",
+			"targetType": "executable",
+			"mainSourceFile": "src/sponskrub/sponskrub.d",
+			"excludedSourceFiles": [ "src/ydl/*"],
+			"targetName": "./sponskrub"
+		},
+		{
+			"name": "ydl",
+			"targetType": "executable",
+			"mainSourceFile": "src/ydl/ydl.d",
+			"excludedSourceFiles": [ "src/sponskrub/*"],
+			"targetName": "./ydl"
+		}
+	]
 }

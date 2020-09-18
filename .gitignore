@@ -9,7 +9,16 @@ sponskrub.dll
 sponskrub.a
 sponskrub.lib
 sponskrub-test-*
+/ydl
+ydl.so
+ydl.dylib
+ydl.dll
+ydl.a
+ydl.lib
+ydl-test-*
 *.exe
 *.o
 *.obj
 *.lst
+*.mp4
+*.ffm
