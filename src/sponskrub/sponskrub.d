@@ -41,7 +41,7 @@ int main(string[] args)
 			new ArgTemplate("include-outros", true),
 			new ArgTemplate("include-interactions", true),
 			new ArgTemplate("include-selfpromo", true),
-			new ArgTemplate("include-music", true),
+			new ArgTemplate("include-nonmusic", true),
 		]);
 		
 	parsed_arguments.parse(args);
@@ -84,8 +84,8 @@ Options:
  -include-selfpromo
    Cut or mark as chapters self promotion (e.g: 'visit our merch store')
  
- -include-music
-   Cut or mark as chapters portions of the video with music but no content
+ -include-nonmusic
+   Cut or mark as chapters portions of music videos without music
 ");
 		return 1;
 	}
@@ -239,8 +239,8 @@ Categories[] categories_from_arguments(Args arguments) {
 	if ("include-selfpromo" in arguments.flag_arguments) {
 		categories ~= Categories.SelfPromo;
 	}
-	if ("include-music" in arguments.flag_arguments) {
-		categories ~= Categories.Music;
+	if ("include-nonmusic" in arguments.flag_arguments) {
+		categories ~= Categories.NonMusic;
 	}
 	
 	return categories;
