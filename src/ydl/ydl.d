@@ -11,8 +11,8 @@ int main(string[] args) {
       new ArgTemplate("ydl"),
       new ArgTemplate("url_or_video_id"),
       new ArgTemplate("h", true),
-      new ArgTemplate("chapter", true),
       new ArgTemplate("dl-args", true, false, 1),
+      new ArgTemplate("skrub-args", true, false, 1),
     ]);
     
   parsed_arguments.parse(args);
@@ -29,7 +29,7 @@ int main(string[] args) {
 
   if ("h" in parsed_arguments.flag_arguments || parsed_arguments.unrecognised_arguments.length > 0 || parsed_arguments.get_missing_arguments().length > 0) {
     writeln(
-"Usage: ydl [-h] [-chapter] url_or_video_id [-ydl-args args]
+"Usage: ydl [-h] url_or_video_id [-ydl-args args] [-skrub-args args]
 ydl is a wrapper around sponskrub and youtube-dl that downloads a video then 
  automatically strips the sponsor spots out. If the video is not a YouTube video 
  it will simply be downloaded
@@ -37,12 +37,11 @@ Options:
   -h
     Display this help string
 
-  -chapter
-    Mark sponsor spots as chapters rather than removing them.
-    Faster but leads to bigger file sizes
-
   -dl-args
     Append these arguments when executing youtube-dl
+  
+  -skrub-args
+    Append these arguments when executing sponskrub
 "
   );
     return 1;
@@ -54,10 +53,11 @@ Options:
     dl_args = parsed_arguments.flag_arguments["dl-args"].join;
   }
   
-  auto chapters = false;
-  if ("chapter" in parsed_arguments.flag_arguments) {
-    chapters = true;
+  auto skrub_args = "";
+  if ("skrub-args" in parsed_arguments.flag_arguments) {
+    skrub_args = parsed_arguments.flag_arguments["skrub-args"].join;
   }
+  
   
   auto youtube_url_regex = ctRegex!(r"^(?:(?:https?:\/\/)?(?:www\.)?youtu(?:\.be|be\.com)/watch\?.*v=)([A-Za-z0-9_-]{11})");
   
@@ -67,7 +67,7 @@ Options:
   if (!youtube_url_matcher.empty) {
     writeln("Youtube url specified");
     auto video_id = youtube_url_matcher[1];
-    if (!download_and_skrub(video_id, chapters, dl_args)) {
+    if (!download_and_skrub(video_id, skrub_args, dl_args)) {
       writeln("Some kind of error occured while downloading and skrubbing, this could be a bug");
       return 2;
     }
@@ -82,12 +82,8 @@ Options:
   return 0;
 }
 
-auto download_and_skrub(string video_id, bool chapters, string dl_args) {
-  auto chapter_flag = "";
-  if (chapters) {
-    chapter_flag = "-chapter";
-  }
-  auto youtube_dl_process = spawnShell(`youtube-dl -f 18 %s --exec "sponskrub %s '%s' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" %s`.format(video_id, chapter_flag, video_id, dl_args));
+auto download_and_skrub(string video_id, string skrub_args, string dl_args) {
+  auto youtube_dl_process = spawnShell(`youtube-dl -f 18 %s --exec "sponskrub %s '%s' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" %s`.format(video_id, skrub_args, video_id, dl_args));
   return wait(youtube_dl_process) == 0;
 }
 

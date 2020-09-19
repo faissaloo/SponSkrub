@@ -23,8 +23,18 @@ import std.algorithm;
 import std.string;
 import std.array;
 import std.conv;
+import std.stdio;
 
-alias ClipTime = Tuple!(string, "start", string, "end");
+enum Categories: string {
+	Sponsor = "sponsor",
+	Intro = "intro", 
+	Outro = "outro",
+	Interaction = "interaction",
+	SelfPromo = "selfpromo",
+	Music = "music_offtopic"
+}
+
+alias ClipTime = Tuple!(string, "start", string, "end", string, "category");
 
 string stringify_timestamp(JSONValue raw_timestamp) {
 	double timestamp;
@@ -36,9 +46,12 @@ string stringify_timestamp(JSONValue raw_timestamp) {
 	return "%6f".format(timestamp);
 }
 
-ClipTime[] get_video_sponsor_times(string video_id) {
-  auto json = parseJSON(get("http://api.sponsor.ajay.app/api/getVideoSponsorTimes?videoID=%s".format(video_id)));
-	return json["sponsorTimes"].array.map!(
-    clip_times => ClipTime(stringify_timestamp(clip_times[0]), stringify_timestamp(clip_times[1]))
-  ).array;
+ClipTime[] get_video_skip_times(string video_id, Categories[] categories) {
+	auto data = get("http://api.sponsor.ajay.app/api/skipSegments?videoID=%s&categories=%s".format(video_id, `["`~(cast(string[])categories).join(`", "`)~`"]`));
+	auto json = parseJSON(data);
+	//This array needs sorting or whatever so they get lined up properly
+	//Or maybe we should get the thing that figures out the times to do that?
+	return json.array.map!(
+		clip_times => ClipTime(stringify_timestamp(clip_times["segment"][0]), stringify_timestamp(clip_times["segment"][1]), clip_times["category"].to!string)
+	).array;
 }

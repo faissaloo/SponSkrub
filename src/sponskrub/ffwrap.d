@@ -43,8 +43,8 @@ bool add_ffmpeg_metadata(string input_filename, string output_filename, string m
 	scope(exit) {
 		remove(metadata_filename);
 	}
-	
 	write_metadata(metadata_filename, metadata);
+	
 	auto ffmpeg_process = spawnProcess(["ffmpeg", "-i", input_filename, "-i", metadata_filename, "-map_metadata", "1", "-map_chapters", "1", "-vcodec", "copy", output_filename]);
 	auto result = wait(ffmpeg_process) == 0;
 	
@@ -53,6 +53,9 @@ bool add_ffmpeg_metadata(string input_filename, string output_filename, string m
 
 auto write_metadata(string filename, string metadata) {
 	auto file = new MmFile(filename, MmFile.Mode.readWriteNew, metadata.length+2, null);
+	scope(exit) {
+		destroy(file);
+	}
 	ubyte[] data = cast(ubyte[]) file[0..metadata.length];
 	data[] = cast(ubyte[]) metadata[];
 }
