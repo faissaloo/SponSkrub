@@ -46,8 +46,8 @@ string stringify_timestamp(JSONValue raw_timestamp) {
 	return "%6f".format(timestamp);
 }
 
-ClipTime[] get_video_skip_times(string video_id, Categories[] categories) {
-	auto data = get("http://sponsor.ajay.app/api/skipSegments?videoID=%s&categories=%s".format(video_id, `["`~(cast(string[])categories).join(`", "`)~`"]`));
+ClipTime[] get_video_skip_times(string video_id, Categories[] categories, string api_url) {
+	auto data = get("http://%s/api/skipSegments?videoID=%s&categories=%s".format(api_url, video_id, `["`~(cast(string[])categories).join(`", "`)~`"]`));
 	auto json = parseJSON(data);
 	//This array needs sorting or whatever so they get lined up properly
 	//Or maybe we should get the thing that figures out the times to do that?

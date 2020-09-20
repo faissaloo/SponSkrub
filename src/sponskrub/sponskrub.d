@@ -44,6 +44,7 @@ int main(string[] args)
 			new ArgTemplate("include-interactions", true),
 			new ArgTemplate("include-selfpromo", true),
 			new ArgTemplate("include-nonmusic", true),
+			new ArgTemplate("api-url", true, false, 1),
 		]);
 		
 	parsed_arguments.parse(args);
@@ -60,7 +61,7 @@ int main(string[] args)
 		
 	if ("h" in parsed_arguments.flag_arguments || parsed_arguments.unrecognised_arguments.length > 0 || parsed_arguments.get_missing_arguments().length > 0) {
 		writeln(
-"Usage: sponskrub [-h] [-chapter] [-exclude-sponsors] [-include-intros] [-include-outros] [-include-interactions] [-include-selfpromo] [-include-nonmusic] video_id input_filename output_filename
+"Usage: sponskrub [-h] [-chapter] [-exclude-sponsors] [-include-intros] [-include-outros] [-include-interactions] [-include-selfpromo] [-include-nonmusic] [-api-url url] video_id input_filename output_filename
 
 SponSkrub is an application for removing sponsors from downloaded Youtube video
  files, it requires an internet connection in order to consult the SponsorBlock
@@ -91,10 +92,19 @@ Options:
  
  -include-nonmusic
    Cut or mark as chapters portions of music videos without music
+
+ -api-url
+   Specify the url where the API is located, defaults to sponsor.ajay.app
 ");
 		return 1;
 	}
 	
+	string api_url;
+	if ("api-url" in parsed_arguments.flag_arguments) {
+		api_url = parsed_arguments.flag_arguments["api-url"].join;
+	} else {
+		api_url = "sponsor.ajay.app";
+	}
 	auto video_id = parsed_arguments.positional_arguments[1];
 	auto input_filename = parsed_arguments.positional_arguments[2];
 	auto output_filename = parsed_arguments.positional_arguments[3];
@@ -114,7 +124,7 @@ Options:
 		return 4;
 	} else {
 		try {
-			sponsor_times = get_video_skip_times(video_id, categories);
+			sponsor_times = get_video_skip_times(video_id, categories, api_url);
 		}	catch (std.net.curl.HTTPStatusException e) {
 			if (e.status == 404) {
 				writeln("This video has no ad information available, either it has no ads or no one has logged any on SponsorBlock yet.");
@@ -122,6 +132,8 @@ Options:
 				writeln("Got %s the server must be broken, try again later".format(e.status));
 			}
 			return 3;
+		} catch (std.net.curl.CurlException e) {
+			writeln("Couldn't connect to the specified API url, try specifying a different one using the -api-url flag");
 		}
 		
 
