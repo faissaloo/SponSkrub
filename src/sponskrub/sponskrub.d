@@ -58,7 +58,7 @@ int main(string[] args)
 		
 	if ("h" in parsed_arguments.flag_arguments || parsed_arguments.unrecognised_arguments.length > 0 || parsed_arguments.get_missing_arguments().length > 0) {
 		writeln(
-"Usage: sponskrub [-h] [-chapter] [-exclude-sponsors] [-include-intros] [-include-interactions] [-include-selfpromo] [-include-music] video_id input_filename output_filename
+"Usage: sponskrub [-h] [-chapter] [-exclude-sponsors] [-include-intros] [-include-interactions] [-include-selfpromo] [-include-nonmusic] video_id input_filename output_filename
 
 SponSkrub is an application for removing sponsors from downloaded Youtube video
  files, it requires an internet connection in order to consult the SponsorBlock

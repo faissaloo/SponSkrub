@@ -29,7 +29,7 @@ int main(string[] args) {
 
   if ("h" in parsed_arguments.flag_arguments || parsed_arguments.unrecognised_arguments.length > 0 || parsed_arguments.get_missing_arguments().length > 0) {
     writeln(
-"Usage: ydl [-h] url_or_video_id [-ydl-args args] [-skrub-args args]
+"Usage: ydl [-h] url_or_video_id [-dl-args args] [-skrub-args args]
 ydl is a wrapper around sponskrub and youtube-dl that downloads a video then 
  automatically strips the sponsor spots out. If the video is not a YouTube video 
  it will simply be downloaded
