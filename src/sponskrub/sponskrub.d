@@ -183,7 +183,7 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 	
 	while (chapter_index < chapter_times.length) {
 		if (is_sponsor) {
-			clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, sponsor_times[sponsor_index].category, "");
+			clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
 			clip_terminal = sponsor_times[sponsor_index].end;
 			sponsor_index++;
 			is_sponsor = false;
@@ -213,10 +213,10 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 
 ClipChapterTime[] sponsor_times_to_chapters(ClipTime[] sponsor_times, ClipTime[] content_times) {
 	return content_times.map!(
-			x => ClipChapterTime(x.start, x.end, "", "content")
+			x => ClipChapterTime(x.start, x.end, "", "sponskrub-content")
 		).array~
 		sponsor_times.map!(
-			x => ClipChapterTime(x.start, x.end, x.category, "")
+			x => ClipChapterTime(x.start, x.end, "sponskrub-" ~ x.category, "")
 		).array;
 }
 
