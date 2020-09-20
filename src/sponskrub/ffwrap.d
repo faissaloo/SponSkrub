@@ -15,6 +15,8 @@
  along with SponSkrub.  If not, see <https://www.gnu.org/licenses/>.
 */
 module ffwrap;
+import std.typecons;
+import std.conv;
 import std.process;
 import std.string;
 import std.mmfile;
@@ -22,14 +24,32 @@ import std.file;
 import std.range;
 import std.random;
 import std.algorithm;
+import std.json;
+
+alias ChapterTime = Tuple!(string, "start", string, "end", string, "title");
 
 string get_video_duration(string filename) {
-	auto ffprobe_process = execute(["ffprobe", "-v", "quiet", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename]);
+	auto ffprobe_process = execute(["ffprobe", "-loglevel", "quiet", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename]);
 
 	if (ffprobe_process.status != 0) {
 		return null;
 	} else {
 		return ffprobe_process.output.chomp;
+	}
+}
+
+ChapterTime[] get_chapter_times(string filename) {
+	auto ffprobe_process = execute(["ffprobe", "-loglevel", "quiet", "-show_chapters", "-print_format", "json", filename]);
+	auto json = parseJSON(ffprobe_process.output);
+	
+	//D can't currently distinguish between null and [] so this'll just silently 
+	//fail because I'm not writing hacks to get around broken language features
+	if (ffprobe_process.status != 0) {
+		return null;
+	} else {
+		return json["chapters"].array.map!(
+			chapter_times => ChapterTime(chapter_times["start_time"].str, chapter_times["end_time"].str, chapter_times["tags"]["title"].str)
+		).array;
 	}
 }
 
@@ -45,7 +65,7 @@ bool add_ffmpeg_metadata(string input_filename, string output_filename, string m
 	}
 	write_metadata(metadata_filename, metadata);
 	
-	auto ffmpeg_process = spawnProcess(["ffmpeg", "-i", input_filename, "-i", metadata_filename, "-map_metadata", "1", "-map_chapters", "1", "-vcodec", "copy", output_filename]);
+	auto ffmpeg_process = spawnProcess(["ffmpeg", "-i", input_filename, "-i", metadata_filename, "-map_metadata", "0", "-map_chapters", "1", "-vcodec", "copy", output_filename]);
 	auto result = wait(ffmpeg_process) == 0;
 	
 	return result;

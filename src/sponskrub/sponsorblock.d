@@ -52,6 +52,6 @@ ClipTime[] get_video_skip_times(string video_id, Categories[] categories) {
 	//This array needs sorting or whatever so they get lined up properly
 	//Or maybe we should get the thing that figures out the times to do that?
 	return json.array.map!(
-		clip_times => ClipTime(stringify_timestamp(clip_times["segment"][0]), stringify_timestamp(clip_times["segment"][1]), clip_times["category"].to!string)
+		clip_times => ClipTime(stringify_timestamp(clip_times["segment"][0]), stringify_timestamp(clip_times["segment"][1]), clip_times["category"].str)
 	).array;
 }

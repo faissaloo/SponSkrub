@@ -21,6 +21,8 @@ import std.string;
 import std.math;
 import std.range;
 import std.array;
+import std.typecons;
+
 import core.sys.posix.signal;
 
 import ffwrap;
@@ -123,15 +125,24 @@ Options:
 		if (sponsor_times.length > 0) {		
 			bool ffmpeg_status;
 			
-			auto content_times = timestampsToKeep(sponsor_times, video_length);
+			auto content_times = timestamps_to_keep(sponsor_times, video_length);
 			
 			if ("chapter" in parsed_arguments.flag_arguments) {
 				writeln("Marking the shilling...");
 
+				auto chapter_times = get_chapter_times(input_filename);
+				
+				ClipChapterTime[] new_chapter_times;
+				if (chapter_times.length == 0) {
+					new_chapter_times = sponsor_times_to_chapters(sponsor_times, content_times);
+				} else {
+					new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
+				}
+
 				ffmpeg_status = add_ffmpeg_metadata(
 					input_filename,
 					output_filename,
-					generate_chapters_metadata(sponsor_times, content_times)
+					generate_chapters_metadata(new_chapter_times)
 				);
 			} else {
 				writeln("Surgically removing the shilling...");
@@ -157,13 +168,63 @@ Options:
 	}
 }
 
-//If the video has chapters this may overwrite them, although it doesn't look
-//youtube downloader is adding them yet so who cares
-string generate_chapters_metadata(ClipTime[] sponsor_times, ClipTime[] content_times) {
+alias ClipChapterTime = Tuple!(string, "start", string, "end", string, "category", string, "title");
+
+ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, ChapterTime[] chapter_times) {
+	ClipChapterTime[] clip_chapters = [];
+	auto sponsor_index = 0;
+	auto chapter_index = 0;
+	auto is_sponsor = false;
+	string clip_terminal = "0";
+	
+	if (sponsor_times[sponsor_index].start.to!float == 0) {
+		is_sponsor = true;
+	}
+	
+	while (chapter_index < chapter_times.length) {
+		if (is_sponsor) {
+			clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, sponsor_times[sponsor_index].category, "");
+			clip_terminal = sponsor_times[sponsor_index].end;
+			sponsor_index++;
+			is_sponsor = false;
+		} else {
+			auto chapter_title = chapter_times[chapter_index].title;
+			string next_terminal;
+			if (sponsor_index < sponsor_times.length && sponsor_times[sponsor_index].start.to!float < chapter_times[chapter_index].end.to!float) {
+				//lets end this chapter at the sponsor
+				next_terminal = sponsor_times[sponsor_index].start;
+				is_sponsor = true;
+				//If this sponsor takes us beyond the clip move to the next clip
+				if (sponsor_times[sponsor_index].end.to!float > chapter_times[chapter_index].end.to!float) {
+					chapter_index++;
+				}
+			} else {
+				//chapter doesn't have anymore sponsors
+				next_terminal = chapter_times[chapter_index].end;
+				chapter_index++;
+			}
+			clip_chapters ~= ClipChapterTime(clip_terminal, next_terminal, "", chapter_title);
+			clip_terminal = next_terminal;
+		}
+	}
+	
+	return clip_chapters;
+}
+
+ClipChapterTime[] sponsor_times_to_chapters(ClipTime[] sponsor_times, ClipTime[] content_times) {
+	return content_times.map!(
+			x => ClipChapterTime(x.start, x.end, "", "content")
+		).array~
+		sponsor_times.map!(
+			x => ClipChapterTime(x.start, x.end, x.category, "")
+		).array;
+}
+
+string generate_chapters_metadata(ClipChapterTime[] chapter_times) {
 	return ";FFMETADATA1\n" ~
-		content_times.map!(x => format_chapter_metadata(x.start, x.end, "Content")).join("\n")~
-		"\n"~
-		sponsor_times.map!(x => format_chapter_metadata(x.start, x.end, x.category)).join("\n");
+		chapter_times.map!(
+			x => format_chapter_metadata(x.start, x.end, x.title~x.category)
+		).join("\n");
 }
 
 string format_chapter_metadata(string start, string end, string title) {
@@ -175,11 +236,11 @@ string format_chapter_metadata(string start, string end, string title) {
 }
 
 
-ClipTime[] timestampsToKeep(ClipTime[] sponsor_times, string video_length) {
+ClipTime[] timestamps_to_keep(ClipTime[] sponsor_times, string video_length) {
 	ClipTime[] clip_times;
 	//If the sponsorship is directly at the beginning don't both adding content
 	if (sponsor_times[0].start != "0.000000") {
-		clip_times ~= ClipTime("0", sponsor_times[0].start, "Content");
+		clip_times ~= ClipTime("0", sponsor_times[0].start, "content");
 	}
 
 	sponsor_times.sort!((a, b) => a.start.to!float < b.start.to!float);
@@ -193,7 +254,7 @@ ClipTime[] timestampsToKeep(ClipTime[] sponsor_times, string video_length) {
 		} else {
 			clip_end = video_length;
 		}
-		clip_times ~= ClipTime(clip_start, clip_end, "Content");
+		clip_times ~= ClipTime(clip_start, clip_end, "content");
 	}
 
 	return clip_times;
