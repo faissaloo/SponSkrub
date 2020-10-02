@@ -79,30 +79,29 @@ class Args {
   
   void parse(string[] args) {
     int remaining_subarguments = 0;
+    bool force_positional_argument = false;
     string flag_name;
     
     foreach (string arg; args) {
       if (remaining_subarguments > 0) {
         flag_arguments[flag_name] ~= arg;
         remaining_subarguments--;
-      } else {
-        if (arg[0] == '-') {
-          flag_name = arg[1..$];
-          if (flag_name in flag_argument_templates) {
-            flag_arguments[flag_name] = [];
-            if (flag_argument_templates[flag_name].subarguments > 0) {
-              remaining_subarguments = flag_argument_templates[flag_name].subarguments;
-            }
-          } else {
-            unrecognised_arguments ~= arg;
+      } else if (arg == "--") {
+        force_positional_argument = true;
+      } else if (!force_positional_argument && arg[0] == '-') {
+        flag_name = arg[1..$];
+        if (flag_name in flag_argument_templates) {
+          flag_arguments[flag_name] = [];
+          if (flag_argument_templates[flag_name].subarguments > 0) {
+            remaining_subarguments = flag_argument_templates[flag_name].subarguments;
           }
         } else {
-          if (positional_arguments.length >= positional_argument_templates.length) {
-            unrecognised_arguments ~= arg;
-          } else {
-            positional_arguments ~= arg;
-          }
+          unrecognised_arguments ~= arg;
         }
+      } else if (positional_arguments.length < positional_argument_templates.length) {
+        positional_arguments ~= arg;
+      } else {
+        unrecognised_arguments ~= arg;
       }
     }
   }

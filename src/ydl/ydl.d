@@ -83,7 +83,7 @@ Options:
 }
 
 auto download_and_skrub(string video_id, string skrub_args, string dl_args) {
-  auto youtube_dl_process = spawnShell(`youtube-dl -f 18 %s --exec "sponskrub %s '%s' {} skrubbed-{} && rm {} || mv {} skrubbed-{}" %s`.format(video_id, skrub_args, video_id, dl_args));
+  auto youtube_dl_process = spawnShell(`youtube-dl --exec "sponskrub %s -- %s {} skrubbed-{} && rm {} || mv {} skrubbed-{}" %s -- %s`.format(skrub_args, video_id, dl_args, video_id));
   return wait(youtube_dl_process) == 0;
 }
 
