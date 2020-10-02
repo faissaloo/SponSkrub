@@ -59,7 +59,7 @@ Options:
   }
   
   
-  auto youtube_url_regex = ctRegex!(r"^(?:(?:https?:\/\/)?(?:www\.)?youtu(?:\.be|be\.com)/watch\?.*v=)([A-Za-z0-9_-]{11})");
+  auto youtube_url_regex = ctRegex!(r"^(?:(?:https?:\/\/)?(?:www\.)?youtu(?:\.be|be\.com)/watch\?.*v=)?([A-Za-z0-9_-]{11})");
   
   auto video_url_or_id = parsed_arguments.positional_arguments[1];
   auto youtube_url_matcher = video_url_or_id.matchFirst(youtube_url_regex);
