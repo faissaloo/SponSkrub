@@ -28,6 +28,8 @@ import core.sys.posix.signal;
 import ffwrap;
 import sponsorblock;
 import args;
+import chapter;
+import cut;
 
 int main(string[] args)
 {
@@ -135,24 +137,22 @@ Options:
 		} catch (std.net.curl.CurlException e) {
 			writeln("Couldn't connect to the specified API url, try specifying a different one using the -api-url flag");
 		}
-		
 
 		if (sponsor_times.length > 0) {		
 			bool ffmpeg_status;
 			
-			auto content_times = timestamps_to_keep(sponsor_times, video_length);
-			
 			if ("chapter" in parsed_arguments.flag_arguments) {
 				writeln("Marking the shilling...");
 
-				auto chapter_times = get_chapter_times(input_filename);
-				
+				ChapterTime[] chapter_times; 
 				ClipChapterTime[] new_chapter_times;
+				
 				if (chapter_times.length == 0) {
-					new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, [ChapterTime("0", video_length, "sponskrub-content")]);
+					chapter_times = [ChapterTime("0", video_length, "sponskrub-content")];
 				} else {
-					new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
+					chapter_times = get_chapter_times(input_filename);
 				}
+				new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
 
 				ffmpeg_status = add_ffmpeg_metadata(
 					input_filename,
@@ -160,6 +160,7 @@ Options:
 					generate_chapters_metadata(new_chapter_times)
 				);
 			} else {
+				auto content_times = timestamps_to_keep(sponsor_times, video_length);
 				writeln("Surgically removing the shilling...");
 				
 				ffmpeg_status = run_ffmpeg_filter(
@@ -183,117 +184,9 @@ Options:
 	}
 }
 
-alias ClipChapterTime = Tuple!(string, "start", string, "end", string, "category", string, "title");
-
-ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, ChapterTime[] chapter_times) {	
-	ClipChapterTime[] clip_chapters = [];
-	ClipTime[] sponsor_stack = []; //stack used for storing sponsors that other sponsors are within
-	auto sponsor_index = 0;
-	auto chapter_index = 0;
-	auto is_sponsor = false;
-	string clip_terminal = "0";
-	
-	if (sponsor_times[sponsor_index].start.to!float == 0) {
-		is_sponsor = true;
-	}
-	
-	while (chapter_index < chapter_times.length) {
-		if (is_sponsor) {
-			//if the stack has items we need to create clips from where we are now to either the end of that sponsorship or the beginning of the next
-			if (sponsor_stack.length > 0) {
-				//we'll need to check if the next sponsorship begins before this one ends
-				if (sponsor_times[sponsor_index].start.to!float < sponsor_stack[0].end.to!float) {
-					//	we need to create a chapter from here to the beginning of that sponsor
-					//  we can then make that sponsor's beginning the clip_terminal methinks
-					//  if that sponsor ends after this sponsor we can pop this sponsor
-					clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].start, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
-					clip_terminal = sponsor_times[sponsor_index].start;
-					
-					if (sponsor_times[sponsor_index].end.to!float > sponsor_stack[0].end.to!float) {
-						sponsor_stack.remove(0);
-					}
-				} else {
-					//  we can just end and pop this sponsorship and set is_sponsor to false
-					sponsor_stack.remove(0);
-					is_sponsor = false;
-				}
-			}
-			
-			//If there isn't another sponsor starting within this sponsor
-			//including if there are no other sponsors after this
-			if ((sponsor_index+1 >= sponsor_times.length) || (sponsor_index+1 < sponsor_times.length && sponsor_times[sponsor_index].end.to!float < sponsor_times[sponsor_index+1].start.to!float)) {
-				//we need a way to check if there is another sponsor starting within this sponsor
-				//if that is the case we shouldn't set is_sponsor to false
-				clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
-				clip_terminal = sponsor_times[sponsor_index].end;
-				sponsor_index++;
-				is_sponsor = false;
-			} else {
-				//if there is another sponsor within this sponsor
-				//add the current sponsor up to the next sponsor
-				clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index+1].start, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
-				clip_terminal = sponsor_times[sponsor_index+1].start;
-				
-				if (sponsor_times[sponsor_index+1].end.to!float < sponsor_times[sponsor_index].end.to!float) {
-					//if that sponsor ends before this sponsor ends we should push it to the stack
-					sponsor_stack.insertInPlace(0, sponsor_times[sponsor_index]);
-				}
-				
-				//go to the next sponsor
-				sponsor_index++;
-			}
-		} else {
-			auto chapter_title = chapter_times[chapter_index].title;
-			string next_terminal;
-			if (sponsor_index < sponsor_times.length && sponsor_times[sponsor_index].start.to!float < chapter_times[chapter_index].end.to!float) {
-				//lets end this chapter at the sponsor
-				next_terminal = sponsor_times[sponsor_index].start;
-				is_sponsor = true;
-				//If this sponsor takes us beyond the clip move to the next clip
-				if (sponsor_times[sponsor_index].end.to!float > chapter_times[chapter_index].end.to!float) {
-					chapter_index++;
-				}
-			} else {
-				//chapter doesn't have anymore sponsors
-				next_terminal = chapter_times[chapter_index].end;
-				chapter_index++;
-			}
-			clip_chapters ~= ClipChapterTime(clip_terminal, next_terminal, "", chapter_title);
-			clip_terminal = next_terminal;
-		}
-	}
-	
-	return clip_chapters;
-}
-
-ClipChapterTime[] sponsor_times_to_chapters(ClipTime[] sponsor_times, ClipTime[] content_times) {
-	return content_times.map!(
-			x => ClipChapterTime(x.start, x.end, "", "sponskrub-content")
-		).array~
-		sponsor_times.map!(
-			x => ClipChapterTime(x.start, x.end, "sponskrub-" ~ x.category, "")
-		).array;
-}
-
-string generate_chapters_metadata(ClipChapterTime[] chapter_times) {
-	return ";FFMETADATA1\n" ~
-		chapter_times.map!(
-			x => format_chapter_metadata(x.start, x.end, x.title~x.category)
-		).join("\n");
-}
-
-string format_chapter_metadata(string start, string end, string title) {
-	return ("[CHAPTER]\n"~
-		"TIMEBASE=1/1\n"~
-		"START=%s\n"~
-		"END=%s\n"~
-		"title=%s\n").format(start,end,title);
-}
-
-
 ClipTime[] timestamps_to_keep(ClipTime[] sponsor_times, string video_length) {
 	ClipTime[] clip_times;
-	//If the sponsorship is directly at the beginning don't both adding content
+	//If the sponsorship is directly at the beginning don't add both content and the sponsor
 	if (sponsor_times[0].start != "0.000000") {
 		clip_times ~= ClipTime("0", sponsor_times[0].start, "content");
 	}
@@ -313,29 +206,6 @@ ClipTime[] timestamps_to_keep(ClipTime[] sponsor_times, string video_length) {
 	}
 
 	return clip_times;
-}
-
-string cut_and_cat_clips_filter(ClipTime[] timestamps) {
-	auto clip_indexes = iota(0, timestamps.length);
-
-	auto filter =
-		"[0:v]split = %s%s,[0:a]asplit = %s%s,%s%sconcat=n=%s:v=1:a=1[v][a]"
-		.format(
-			timestamps.length,
-			clip_indexes.map!(i => "[vcopy%s]".format(i)).join,
-			timestamps.length,
-			clip_indexes.map!(i => "[acopy%s]".format(i)).join,
-			timestamps.enumerate(0).map!(x => cut_audio_video_clip_filter(x.index, x.value.start, x.value.end)).join,
-			clip_indexes.map!(i => "[v%s] [a%s] ".format(i,i)).join,
-			timestamps.length
-		);
-
-	return filter;
-}
-
-string cut_audio_video_clip_filter(ulong stream_id, string start, string end) {
-	return "[vcopy%s] trim=%s:%s,setpts=PTS-STARTPTS[v%s],[acopy%s] atrim=%s:%s,asetpts=PTS-STARTPTS[a%s],"
-		.format(stream_id, start, end, stream_id, stream_id, start, end, stream_id);
 }
 
 Categories[] categories_from_arguments(Args arguments) {
