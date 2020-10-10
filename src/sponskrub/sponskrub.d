@@ -149,7 +149,7 @@ Options:
 				
 				ClipChapterTime[] new_chapter_times;
 				if (chapter_times.length == 0) {
-					new_chapter_times = sponsor_times_to_chapters(sponsor_times, content_times);
+					new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, [ChapterTime("0", video_length, "sponskrub-content")]);
 				} else {
 					new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
 				}
@@ -185,8 +185,9 @@ Options:
 
 alias ClipChapterTime = Tuple!(string, "start", string, "end", string, "category", string, "title");
 
-ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, ChapterTime[] chapter_times) {
+ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, ChapterTime[] chapter_times) {	
 	ClipChapterTime[] clip_chapters = [];
+	ClipTime[] sponsor_stack = []; //stack used for storing sponsors that other sponsors are within
 	auto sponsor_index = 0;
 	auto chapter_index = 0;
 	auto is_sponsor = false;
@@ -198,10 +199,49 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 	
 	while (chapter_index < chapter_times.length) {
 		if (is_sponsor) {
-			clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
-			clip_terminal = sponsor_times[sponsor_index].end;
-			sponsor_index++;
-			is_sponsor = false;
+			//if the stack has items we need to create clips from where we are now to either the end of that sponsorship or the beginning of the next
+			if (sponsor_stack.length > 0) {
+				//we'll need to check if the next sponsorship begins before this one ends
+				if (sponsor_times[sponsor_index].start.to!float < sponsor_stack[0].end.to!float) {
+					//	we need to create a chapter from here to the beginning of that sponsor
+					//  we can then make that sponsor's beginning the clip_terminal methinks
+					//  if that sponsor ends after this sponsor we can pop this sponsor
+					clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].start, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
+					clip_terminal = sponsor_times[sponsor_index].start;
+					
+					if (sponsor_times[sponsor_index].end.to!float > sponsor_stack[0].end.to!float) {
+						sponsor_stack.remove(0);
+					}
+				} else {
+					//  we can just end and pop this sponsorship and set is_sponsor to false
+					sponsor_stack.remove(0);
+					is_sponsor = false;
+				}
+			}
+			
+			//If there isn't another sponsor starting within this sponsor
+			//including if there are no other sponsors after this
+			if ((sponsor_index+1 >= sponsor_times.length) || (sponsor_index+1 < sponsor_times.length && sponsor_times[sponsor_index].end.to!float < sponsor_times[sponsor_index+1].start.to!float)) {
+				//we need a way to check if there is another sponsor starting within this sponsor
+				//if that is the case we shouldn't set is_sponsor to false
+				clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
+				clip_terminal = sponsor_times[sponsor_index].end;
+				sponsor_index++;
+				is_sponsor = false;
+			} else {
+				//if there is another sponsor within this sponsor
+				//add the current sponsor up to the next sponsor
+				clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index+1].start, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
+				clip_terminal = sponsor_times[sponsor_index+1].start;
+				
+				if (sponsor_times[sponsor_index+1].end.to!float < sponsor_times[sponsor_index].end.to!float) {
+					//if that sponsor ends before this sponsor ends we should push it to the stack
+					sponsor_stack.insertInPlace(0, sponsor_times[sponsor_index]);
+				}
+				
+				//go to the next sponsor
+				sponsor_index++;
+			}
 		} else {
 			auto chapter_title = chapter_times[chapter_index].title;
 			string next_terminal;
