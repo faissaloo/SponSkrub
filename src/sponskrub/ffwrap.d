@@ -27,7 +27,24 @@ import std.algorithm;
 import std.json;
 
 alias ChapterTime = Tuple!(string, "start", string, "end", string, "title");
+enum FileCategory {
+	AUDIO_VIDEO,
+	VIDEO,
+	AUDIO,
+	OTHER
+}
 
+FileCategory get_file_category(string filename) {
+	auto ffprobe_process = execute(["ffprobe", "-loglevel", "quiet", "-show_entries", "stream=codec_type", "-print_format", "default=noprint_wrappers=1:nokey=1", filename]);
+	if (canFind(ffprobe_process.output, "video") && canFind(ffprobe_process.output, "audio")) {
+		return FileCategory.AUDIO_VIDEO;
+	} else if (canFind(ffprobe_process.output, "video")) {
+		return FileCategory.VIDEO;
+	} else if (canFind(ffprobe_process.output, "audio")) {
+		return FileCategory.AUDIO;
+	}
+	return FileCategory.OTHER;
+}
 string get_video_duration(string filename) {
 	auto ffprobe_process = execute(["ffprobe", "-loglevel", "quiet", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename]);
 
@@ -52,9 +69,18 @@ ChapterTime[] get_chapter_times(string filename) {
 		).array;
 	}
 }
+import std.stdio;
 
-bool run_ffmpeg_filter(string input_filename, string output_filename, string filter) {
-	auto ffmpeg_process = spawnProcess(["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[v]", "-map", "[a]",output_filename]);
+bool run_ffmpeg_filter(string input_filename, string output_filename, string filter, FileCategory category) {
+	string[] args;
+	if (category == FileCategory.AUDIO_VIDEO) {
+		args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[v]", "-map", "[a]",output_filename];
+	} else if (category == FileCategory.VIDEO) {
+		args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[v]", output_filename];
+	}	else if (category == FileCategory.AUDIO) {
+		args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[a]", output_filename];
+	}
+	auto ffmpeg_process = spawnProcess(args);
 	return wait(ffmpeg_process) == 0;
 }
 

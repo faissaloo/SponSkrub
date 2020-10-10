@@ -24,26 +24,58 @@ import std.range;
 import std.array;
 import std.typecons;
 import sponsorblock;
+import ffwrap;
 
-string cut_and_cat_clips_filter(ClipTime[] timestamps) {
+string cut_and_cat_clips_filter(ClipTime[] timestamps, FileCategory category) {
+  timestamps.sort!((a, b) => a.start.to!float < b.start.to!float);
+
 	auto clip_indexes = iota(0, timestamps.length);
 
-	auto filter =
-		"[0:v]split = %s%s,[0:a]asplit = %s%s,%s%sconcat=n=%s:v=1:a=1[v][a]"
-		.format(
-			timestamps.length,
-			clip_indexes.map!(i => "[vcopy%s]".format(i)).join,
-			timestamps.length,
-			clip_indexes.map!(i => "[acopy%s]".format(i)).join,
-			timestamps.enumerate(0).map!(x => cut_audio_video_clip_filter(x.index, x.value.start, x.value.end)).join,
-			clip_indexes.map!(i => "[v%s] [a%s] ".format(i,i)).join,
-			timestamps.length
-		);
+	string filter;
+  if (category == FileCategory.AUDIO_VIDEO) {
+    filter = "[0:v]split = %s%s,[0:a]asplit = %s%s,%s%sconcat=n=%s:v=1:a=1[v][a]"
+      .format(
+        timestamps.length,
+        clip_indexes.map!(i => "[vcopy%s]".format(i)).join,
+        timestamps.length,
+        clip_indexes.map!(i => "[acopy%s]".format(i)).join,
+        timestamps.enumerate(0).map!(x => cut_audio_video_clip_filter(x.index, x.value.start, x.value.end)).join,
+        clip_indexes.map!(i => "[v%s] [a%s] ".format(i,i)).join,
+        timestamps.length
+      );
+  } else if (category == FileCategory.VIDEO) {
+    filter = "[0:v]split = %s%s,%s%sconcat=n=%s:v=1[v]"
+      .format(
+        timestamps.length,
+        clip_indexes.map!(i => "[vcopy%s]".format(i)).join,
+        timestamps.enumerate(0).map!(x => cut_video_clip_filter(x.index, x.value.start, x.value.end)).join,
+        clip_indexes.map!(i => "[v%s] ".format(i)).join,
+        timestamps.length
+      );
+  } else if (category == FileCategory.AUDIO) {
+    filter = "[0:a]asplit = %s%s,%s%sconcat=n=%s:v=0:a=1[a]"
+      .format(
+        timestamps.length,
+        clip_indexes.map!(i => "[acopy%s]".format(i)).join,
+        timestamps.enumerate(0).map!(x => cut_audio_clip_filter(x.index, x.value.start, x.value.end)).join,
+        clip_indexes.map!(i => "[a%s] ".format(i)).join,
+        timestamps.length
+      );
+  }
 
 	return filter;
 }
 
+string cut_audio_clip_filter(ulong stream_id, string start, string end) {
+	return "[acopy%s] atrim=%s:%s,asetpts=PTS-STARTPTS[a%s],"
+		.format(stream_id, start, end, stream_id);
+}
+
+string cut_video_clip_filter(ulong stream_id, string start, string end) {
+	return "[vcopy%s] trim=%s:%s,setpts=PTS-STARTPTS[v%s],"
+		.format(stream_id, start, end, stream_id);
+}
+
 string cut_audio_video_clip_filter(ulong stream_id, string start, string end) {
-	return "[vcopy%s] trim=%s:%s,setpts=PTS-STARTPTS[v%s],[acopy%s] atrim=%s:%s,asetpts=PTS-STARTPTS[a%s],"
-		.format(stream_id, start, end, stream_id, stream_id, start, end, stream_id);
+	return cut_video_clip_filter(stream_id, start, end)~cut_audio_clip_filter(stream_id, start, end);
 }

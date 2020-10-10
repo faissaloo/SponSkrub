@@ -166,7 +166,8 @@ Options:
 				ffmpeg_status = run_ffmpeg_filter(
 					input_filename,
 					output_filename,
-					cut_and_cat_clips_filter(content_times)
+					cut_and_cat_clips_filter(content_times, get_file_category(input_filename)),
+					get_file_category(input_filename)
 				);
 			}
 			
@@ -186,12 +187,14 @@ Options:
 
 ClipTime[] timestamps_to_keep(ClipTime[] sponsor_times, string video_length) {
 	ClipTime[] clip_times;
+	
+	sponsor_times.sort!((a, b) => a.start.to!float < b.start.to!float);
+	
 	//If the sponsorship is directly at the beginning don't add both content and the sponsor
 	if (sponsor_times[0].start != "0.000000") {
 		clip_times ~= ClipTime("0", sponsor_times[0].start, "content");
 	}
 
-	sponsor_times.sort!((a, b) => a.start.to!float < b.start.to!float);
 	
 	for (auto i = 0; i < sponsor_times.length; i++) {
 		auto clip_start = "";

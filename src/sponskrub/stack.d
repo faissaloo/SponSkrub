@@ -16,6 +16,7 @@
 */
 import std.algorithm;
 import std.array;
+import std.stdio;
 
 struct Stack(T) {
   T[] data;
@@ -24,8 +25,8 @@ struct Stack(T) {
     data = init_data;
   }
   
-  bool empty() {
-    return data.length == 0;
+  bool notEmpty() {
+    return data.length > 0;
   }
   
   void push(T datum) {

@@ -31,7 +31,10 @@ import stack;
 alias ClipChapterTime = Tuple!(string, "start", string, "end", string, "category", string, "title");
 
 //I need to come up with a way to implement this that's easier to understand
-ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, ChapterTime[] chapter_times) {	
+ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, ChapterTime[] chapter_times) {
+	sponsor_times.sort!((a, b) => a.start.to!float < b.start.to!float);
+	chapter_times.sort!((a, b) => a.start.to!float < b.start.to!float);
+
 	ClipChapterTime[] clip_chapters = [];
 	Stack!(ClipTime) sponsor_stack = []; //stack used for storing sponsors that other sponsors are within
 	auto sponsor_index = 0;
@@ -46,7 +49,8 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 	while (chapter_index < chapter_times.length) {
 		if (is_sponsor) {
 			//if the stack has items we need to create clips from where we are now to either the end of that sponsorship or the beginning of the next
-			if (!sponsor_stack.empty()) {
+			//I'd do !empty but idk how to override the UDA so I just renamed the method
+			if (sponsor_stack.notEmpty()) {
 				//we'll need to check if the next sponsorship begins before this one ends
 				if (sponsor_times[sponsor_index].start.to!float < sponsor_stack.peek().end.to!float) {
 					//	we need to create a chapter from here to the beginning of that sponsor
@@ -66,7 +70,7 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 			}
 			//If there isn't another sponsor starting within this sponsor
 			//including if there are no other sponsors after this
-			else if ((sponsor_index+1 >= sponsor_times.length) || (sponsor_index+1 < sponsor_times.length && sponsor_times[sponsor_index].end.to!float < sponsor_times[sponsor_index+1].start.to!float)) {
+			if ((sponsor_index+1 >= sponsor_times.length) || (sponsor_index+1 < sponsor_times.length && sponsor_times[sponsor_index].end.to!float < sponsor_times[sponsor_index+1].start.to!float)) {
 				//we need a way to check if there is another sponsor starting within this sponsor
 				//if that is the case we shouldn't set is_sponsor to false
 				clip_chapters ~= ClipChapterTime(clip_terminal, sponsor_times[sponsor_index].end, "sponskrub-" ~ sponsor_times[sponsor_index].category, "");
