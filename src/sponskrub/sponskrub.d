@@ -147,11 +147,12 @@ Options:
 				ChapterTime[] chapter_times; 
 				ClipChapterTime[] new_chapter_times;
 				
+				chapter_times = get_chapter_times(input_filename);
+				
 				if (chapter_times.length == 0) {
 					chapter_times = [ChapterTime("0", video_length, "sponskrub-content")];
-				} else {
-					chapter_times = get_chapter_times(input_filename);
 				}
+				
 				new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
 
 				ffmpeg_status = add_ffmpeg_metadata(
