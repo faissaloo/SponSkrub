@@ -91,7 +91,7 @@ bool add_ffmpeg_metadata(string input_filename, string output_filename, string m
 	}
 	write_metadata(metadata_filename, metadata);
 	
-	auto ffmpeg_process = spawnProcess(["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-i", metadata_filename, "-map_metadata", "0", "-map_chapters", "1", "-codec", "copy", output_filename]);
+	auto ffmpeg_process = spawnProcess(["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-i", metadata_filename, "-map", "0", "-map_metadata", "0", "-map_chapters", "1", "-codec", "copy", output_filename]);
 	auto result = wait(ffmpeg_process) == 0;
 	
 	return result;
