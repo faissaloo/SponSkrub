@@ -12,7 +12,7 @@
 			"targetType": "none",
 			"dependencies": {
 				"sponskrub:sponskrub": "*",
-				"sponskrub:ydl": "*"
+				"sponskrub:youtube-dl-sponsorblock": "*"
 			}
 		}
 	],
@@ -21,15 +21,15 @@
 			"name": "sponskrub",
 			"targetType": "executable",
 			"mainSourceFile": "src/sponskrub/sponskrub.d",
-			"excludedSourceFiles": [ "src/ydl/*"],
+			"excludedSourceFiles": [ "src/youtube_dl_sponsorblock/*"],
 			"targetName": "./sponskrub"
 		},
 		{
-			"name": "ydl",
+			"name": "youtube-dl-sponsorblock",
 			"targetType": "executable",
-			"mainSourceFile": "src/ydl/ydl.d",
+			"mainSourceFile": "src/youtube_dl_sponsorblock/youtube_dl_sponsorblock.d",
 			"excludedSourceFiles": [ "src/sponskrub/*"],
-			"targetName": "./ydl"
+			"targetName": "./youtube-dl-sponsorblock"
 		}
 	]
 }

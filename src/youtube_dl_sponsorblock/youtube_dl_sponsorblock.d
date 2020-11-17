@@ -8,7 +8,7 @@ import args;
 
 int main(string[] args) {
   Args parsed_arguments = new Args([
-      new ArgTemplate("ydl"),
+      new ArgTemplate("youtube-dl-sponsorblock"),
       new ArgTemplate("url_or_video_id"),
       new ArgTemplate("h", true),
       new ArgTemplate("dl-args", true, false, 1),
@@ -29,8 +29,8 @@ int main(string[] args) {
 
   if ("h" in parsed_arguments.flag_arguments || parsed_arguments.unrecognised_arguments.length > 0 || parsed_arguments.get_missing_arguments().length > 0) {
     writeln(
-"Usage: ydl [-h] url_or_video_id [-dl-args args] [-skrub-args args]
-ydl is a wrapper around sponskrub and youtube-dl that downloads a video then 
+"Usage: youtube-dl-sponsorblock [-h] url_or_video_id [-dl-args args] [-skrub-args args]
+youtube-dl-sponsorblock is a wrapper around sponskrub and youtube-dl that downloads a video then 
  automatically strips the sponsor spots out. If the video is not a YouTube video 
  it will simply be downloaded
 Options:
