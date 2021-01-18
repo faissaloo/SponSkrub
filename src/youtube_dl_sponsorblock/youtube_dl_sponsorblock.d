@@ -3,6 +3,9 @@ import std.process;
 import std.regex;
 import std.array;
 import std.format;
+import std.string;
+import std.path;
+import std.file;
 
 import args;
 
@@ -73,7 +76,7 @@ Options:
     }
   } else {
     writeln("Non-youtube url specified");
-    if (!download_only(video_url_or_id)) {
+    if (!download_video(video_url_or_id, dl_args)) {
       writeln("Some kind of error occured while downloading, this is probably something to do with youtube-dl");
     }
     return 2;
@@ -82,12 +85,50 @@ Options:
   return 0;
 }
 
-auto download_and_skrub(string video_id, string skrub_args, string dl_args) {
-  auto youtube_dl_process = spawnShell(`youtube-dl --exec "sponskrub %s -- %s {} skrubbed-{} && rm {} || mv {} skrubbed-{}" %s -- %s`.format(skrub_args, video_id, dl_args, video_id));
-  return wait(youtube_dl_process) == 0;
+auto get_download_filename(string video_id, string dl_args) {
+  //This breaks with mkvs because youtube-dl's --get-filename is slightly broken
+  //https://github.com/ytdl-org/youtube-dl/issues/5710
+  //workaround is to only ever use the best of a single container by default
+  auto youtube_dl_get_filename = executeShell(`youtube-dl -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=webm]+bestaudio[ext=webm]/best' %s --get-filename -- "%s"`.format(dl_args, video_id));
+  if (youtube_dl_get_filename.status == 0) {
+    return youtube_dl_get_filename.output.chomp;
+  } else {
+    writeln(youtube_dl_get_filename.output);
+    return null;
+  }
 }
 
-auto download_only(string video_url) {
-  auto youtube_dl_process = spawnShell(`youtube-dl %s`.format(video_url));
+auto download_and_skrub(string video_id, string skrub_args, string dl_args) {
+  auto filename = get_download_filename(video_id, dl_args);
+  
+  if (filename is null) {
+    return false;
+  } else {
+    auto output_filename_parts = pathSplitter(filename).array;
+    output_filename_parts[$-1] = "skrubbed-"~output_filename_parts[$-1];
+    auto output_filename = buildPath(output_filename_parts);
+    
+    if (download_video(video_id, dl_args)) {
+      if (skrub(video_id, filename, output_filename, skrub_args)) {
+        remove(filename);
+        return true;
+      } else {
+        //nothing to skrub, just move it
+        rename(filename, output_filename);
+        return true;
+      }
+    } else {
+      return false;
+    }
+  }
+}
+
+auto skrub(string video_id, string input_filename, string output_filename, string skrub_args) {
+  auto sponskrub_process = spawnShell(`sponskrub %s -- "%s" "%s" "%s"`.format(skrub_args, video_id, input_filename, output_filename));
+  return wait(sponskrub_process) == 0;
+}
+
+auto download_video(string video_url_or_id, string dl_args) {
+  auto youtube_dl_process = spawnShell(`youtube-dl -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=webm]+bestaudio[ext=webm]/best' %s -- "%s"`.format(dl_args, video_url_or_id));
   return wait(youtube_dl_process) == 0;
 }
