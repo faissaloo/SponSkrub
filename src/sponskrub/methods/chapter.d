@@ -115,10 +115,18 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 	return clip_chapters;
 }
 
+string generate_chapter_title(ClipChapterTime chapter) {
+	if (chapter.category == Categories.Content) {
+		return chapter.title;
+	} else {
+		return chapter.title~" <"~chapter.category~">";
+	}
+}
+
 string generate_chapters_metadata(ClipChapterTime[] chapter_times) {
 	return ";FFMETADATA1\n" ~
 		chapter_times.map!(
-			x => format_chapter_metadata(x.start, x.end, x.title~x.category)
+			chapter => format_chapter_metadata(chapter.start, chapter.end, generate_chapter_title(chapter))
 		).join("\n");
 }
 

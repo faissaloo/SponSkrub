@@ -71,14 +71,29 @@ ChapterTime[] get_chapter_times(string filename) {
 }
 import std.stdio;
 
-bool run_ffmpeg_filter(string input_filename, string output_filename, string filter, FileCategory category) {
+bool run_ffmpeg_filter(string input_filename, string output_filename, string filter, FileCategory category, string metadata = "") {
+	string metadata_filename = null;
+	scope(exit) {
+		if (metadata_filename !is null) {
+			remove(metadata_filename);
+		}
+	}
+	
 	string[] args;
+	args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename];
+	
+	if (metadata != "") {
+		metadata_filename = prepend_random_prefix(6, "-metadata.ffm");
+		write_metadata(metadata_filename, metadata);
+		args ~= ["-i", metadata_filename, "-map_metadata", "0", "-map_chapters", "1"];
+	}
+	
 	if (category == FileCategory.AUDIO_VIDEO) {
-		args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[v]", "-map", "[a]",output_filename];
+		args ~= ["-filter_complex", filter, "-map", "[v]", "-map", "[a]", output_filename];
 	} else if (category == FileCategory.VIDEO) {
-		args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[v]", output_filename];
+		args ~= ["-filter_complex", filter, "-map", "[v]", output_filename];
 	}	else if (category == FileCategory.AUDIO) {
-		args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename, "-filter_complex", filter, "-map", "[a]", output_filename];
+		args ~= ["-filter_complex", filter, "-map", "[a]", output_filename];
 	}
 	auto ffmpeg_process = spawnProcess(args);
 	return wait(ffmpeg_process) == 0;

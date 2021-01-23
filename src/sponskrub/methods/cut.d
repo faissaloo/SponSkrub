@@ -27,16 +27,28 @@ import sponsorblock;
 import ffwrap;
 import chapter;
 
-ClipTime[] timestamps_to_keep(ClipChapterTime[] chapters) {
-	//we can redo this so it just filters a bunch of chapter times and includes only content
+ClipChapterTime[] timestamps_to_keep(ClipChapterTime[] chapters) {
 	return chapters
 		.sort!((a, b) => a.start.to!float < b.start.to!float)
 		.filter!(chapter => chapter.category == Categories.Content)
-		.map!(chapter => ClipTime(chapter.start, chapter.end, "")) //we need better types, this shouldn't need a category
 		.array;
 }
 
-string cut_and_cat_clips_filter(ClipTime[] timestamps, FileCategory category) {
+ClipChapterTime[] calculate_timestamps_for_kept_clips(ClipChapterTime[] chapters) {
+	auto current_time = "0";
+	ClipChapterTime[] adjusted_chapters = [];
+	
+	foreach (ClipChapterTime chapter; chapters) {
+		auto duration = chapter.end.to!float - chapter.start.to!float;
+		auto end_time = (current_time.to!float + duration).to!string; // I really need to deal with this bouncing between strings and floats nonsense
+		adjusted_chapters ~= ClipChapterTime(current_time, end_time, chapter.category, chapter.title);
+		current_time = end_time;
+	}
+	return adjusted_chapters;
+	
+}
+
+string cut_and_cat_clips_filter(ClipChapterTime[] timestamps, FileCategory category) {
   timestamps.sort!((a, b) => a.start.to!float < b.start.to!float);
 
 	auto clip_indexes = iota(0, timestamps.length);

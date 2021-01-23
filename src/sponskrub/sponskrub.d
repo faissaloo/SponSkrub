@@ -145,8 +145,8 @@ Options:
 			ClipChapterTime[] new_chapter_times;
 			
 			chapter_times = get_chapter_times(input_filename);
-			
-			if (chapter_times.length == 0) {
+			auto input_chapters_count = chapter_times.length;
+			if (input_chapters_count == 0) {
 				chapter_times = [ChapterTime("0", video_length, "sponskrub-content")];
 			}
 			
@@ -161,8 +161,6 @@ Options:
 					generate_chapters_metadata(new_chapter_times)
 				);
 			} else {
-				//using the chapter data also means that in future we could also adjust
-				//preexisting chapter metadata to remain accurate after the cut
 				writeln("Surgically removing the shilling...");
 				auto content_times = timestamps_to_keep(new_chapter_times);
 				
@@ -170,7 +168,8 @@ Options:
 					input_filename,
 					output_filename,
 					cut_and_cat_clips_filter(content_times, get_file_category(input_filename)),
-					get_file_category(input_filename)
+					get_file_category(input_filename),
+					generate_chapters_metadata(calculate_timestamps_for_kept_clips(content_times))
 				);
 			}
 			
