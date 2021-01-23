@@ -163,13 +163,18 @@ Options:
 			} else {
 				writeln("Surgically removing the shilling...");
 				auto content_times = timestamps_to_keep(new_chapter_times);
+				auto cut_chapter_times = "";
+				
+				if (input_chapters_count > 0) {
+					cut_chapter_times = generate_chapters_metadata(calculate_timestamps_for_kept_clips(content_times));
+				}
 				
 				ffmpeg_status = run_ffmpeg_filter(
 					input_filename,
 					output_filename,
 					cut_and_cat_clips_filter(content_times, get_file_category(input_filename)),
 					get_file_category(input_filename),
-					generate_chapters_metadata(calculate_timestamps_for_kept_clips(content_times))
+					cut_chapter_times
 				);
 			}
 			
