@@ -31,7 +31,9 @@ enum Categories: string {
 	Outro = "outro",
 	Interaction = "interaction",
 	SelfPromo = "selfpromo",
-	NonMusic = "music_offtopic"
+	NonMusic = "music_offtopic",
+	//
+	Content = "content"
 }
 
 alias ClipTime = Tuple!(string, "start", string, "end", string, "category");

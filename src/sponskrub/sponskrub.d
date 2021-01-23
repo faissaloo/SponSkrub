@@ -141,28 +141,30 @@ Options:
 		if (sponsor_times.length > 0) {		
 			bool ffmpeg_status;
 			
+			ChapterTime[] chapter_times; 
+			ClipChapterTime[] new_chapter_times;
+			
+			chapter_times = get_chapter_times(input_filename);
+			
+			if (chapter_times.length == 0) {
+				chapter_times = [ChapterTime("0", video_length, "sponskrub-content")];
+			}
+			
+			new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
+			
 			if ("chapter" in parsed_arguments.flag_arguments) {
 				writeln("Marking the shilling...");
-
-				ChapterTime[] chapter_times; 
-				ClipChapterTime[] new_chapter_times;
 				
-				chapter_times = get_chapter_times(input_filename);
-				
-				if (chapter_times.length == 0) {
-					chapter_times = [ChapterTime("0", video_length, "sponskrub-content")];
-				}
-				
-				new_chapter_times = merge_sponsor_times_with_chapters(sponsor_times, chapter_times);
-
 				ffmpeg_status = add_ffmpeg_metadata(
 					input_filename,
 					output_filename,
 					generate_chapters_metadata(new_chapter_times)
 				);
 			} else {
-				auto content_times = timestamps_to_keep(sponsor_times, video_length);
+				//using the chapter data also means that in future we could also adjust
+				//preexisting chapter metadata to remain accurate after the cut
 				writeln("Surgically removing the shilling...");
+				auto content_times = timestamps_to_keep(new_chapter_times);
 				
 				ffmpeg_status = run_ffmpeg_filter(
 					input_filename,

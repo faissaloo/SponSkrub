@@ -25,30 +25,15 @@ import std.array;
 import std.typecons;
 import sponsorblock;
 import ffwrap;
+import chapter;
 
-ClipTime[] timestamps_to_keep(ClipTime[] sponsor_times, string video_length) {
-	ClipTime[] clip_times;
-	sponsor_times.sort!((a, b) => a.start.to!float < b.start.to!float);
-	
-	//If the sponsorship is directly at the beginning don't add both content and the sponsor
-	if (sponsor_times[0].start != "0.000000") {
-		clip_times ~= ClipTime("0", sponsor_times[0].start, "content");
-	}
-
-	
-	for (auto i = 0; i < sponsor_times.length; i++) {
-		auto clip_start = "";
-		auto clip_end = "";
-		clip_start = sponsor_times[i].end;
-		if (i+1 < sponsor_times.length) {
-			clip_end = sponsor_times[i+1].start;
-		} else {
-			clip_end = video_length;
-		}
-		clip_times ~= ClipTime(clip_start, clip_end, "content");
-	}
-
-	return clip_times;
+ClipTime[] timestamps_to_keep(ClipChapterTime[] chapters) {
+	//we can redo this so it just filters a bunch of chapter times and includes only content
+	return chapters
+		.sort!((a, b) => a.start.to!float < b.start.to!float)
+		.filter!(chapter => chapter.category == Categories.Content)
+		.map!(chapter => ClipTime(chapter.start, chapter.end, "")) //we need better types, this shouldn't need a category
+		.array;
 }
 
 string cut_and_cat_clips_filter(ClipTime[] timestamps, FileCategory category) {

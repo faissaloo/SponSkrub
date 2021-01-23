@@ -107,7 +107,7 @@ ClipChapterTime[] merge_sponsor_times_with_chapters(ClipTime[] sponsor_times, Ch
 				next_terminal = chapter_times[chapter_index].end;
 				chapter_index++;
 			}
-			clip_chapters ~= ClipChapterTime(clip_terminal, next_terminal, "", chapter_title);
+			clip_chapters ~= ClipChapterTime(clip_terminal, next_terminal, Categories.Content, chapter_title);
 			clip_terminal = next_terminal;
 		}
 	}
