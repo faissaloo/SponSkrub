@@ -46,6 +46,7 @@ int main(string[] args)
 			new ArgTemplate("include-interactions", true),
 			new ArgTemplate("include-selfpromo", true),
 			new ArgTemplate("include-nonmusic", true),
+			new ArgTemplate("no-id", true),
 			new ArgTemplate("api-url", true, false, 1),
 		]);
 		
@@ -97,6 +98,11 @@ Options:
 
  -api-url
    Specify the url where the API is located, defaults to sponsor.ajay.app
+ 
+ -no-id
+   Searches for sponsor data by the partial hash of the video id instead of
+	 directly requesting it.
+	 This adds a degree of privacy, but is slightly slower and uses more bandwidth.
 ");
 		return 1;
 	}
@@ -126,7 +132,11 @@ Options:
 		return 4;
 	} else {
 		try {
-			sponsor_times = get_video_skip_times(video_id, categories, api_url);
+			if ("no-id" in parsed_arguments.flag_arguments) {
+				sponsor_times = get_video_skip_times_private(video_id, categories, api_url);
+			} else {
+				sponsor_times = get_video_skip_times_direct(video_id, categories, api_url);
+			}
 		}	catch (std.net.curl.HTTPStatusException e) {
 			if (e.status == 404) {
 				writeln("This video has no ad information available, either it has no ads or no one has logged any on SponsorBlock yet.");
