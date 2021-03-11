@@ -68,9 +68,6 @@ ClipTime[] get_video_skip_times_private(string video_id, Categories[] categories
 			return video["segments"].array.map!(
 				clip_times => ClipTime(stringify_timestamp(clip_times["segment"][0]), stringify_timestamp(clip_times["segment"][1]), clip_times["category"].str)
 			).array;
-		} else {
-			writeln("VIDEO ID WAS: ");
-			writeln(video["videoID"]);
 		}
 	}
 	return null;
