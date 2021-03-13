@@ -51,6 +51,7 @@ int main(string[] args)
 			new ArgTemplate("no-id", true),
 			new ArgTemplate("keep-date", true),
 			new ArgTemplate("api-url", true, false, 1),
+			new ArgTemplate("proxy", true, false, 1),
 		]);
 		
 	parsed_arguments.parse(args);
@@ -67,7 +68,7 @@ int main(string[] args)
 		
 	if ("h" in parsed_arguments.flag_arguments || parsed_arguments.unrecognised_arguments.length > 0 || parsed_arguments.get_missing_arguments().length > 0) {
 		writeln(
-"Usage: sponskrub [-h] [-chapter] [-exclude-sponsors] [-include-intros] [-include-outros] [-include-interactions] [-include-selfpromo] [-include-nonmusic] [-api-url url] video_id input_filename output_filename
+"Usage: sponskrub [-h] [-chapter] [-exclude-sponsors] [-include-intros] [-include-outros] [-include-interactions] [-include-selfpromo] [-include-nonmusic] [-keep-date] [-proxy proxy] [-api-url url] video_id input_filename output_filename
 
 SponSkrub is an application for removing sponsors from downloaded Youtube video
  files, it requires an internet connection in order to consult the SponsorBlock
@@ -109,6 +110,9 @@ Options:
  
  -keep-date
    Give the output file the same modification date as the input file.
+
+ -proxy
+   Allows you to specify a proxy to route any requests through
 ");
 		return 1;
 	}
@@ -119,6 +123,14 @@ Options:
 	} else {
 		api_url = "sponsor.ajay.app";
 	}
+	
+	string proxy;
+	if ("proxy" in parsed_arguments.flag_arguments) {
+		proxy = parsed_arguments.flag_arguments["proxy"].join;
+	} else {
+		proxy = "";
+	}
+	
 	auto video_id = parsed_arguments.positional_arguments[1];
 	auto input_filename = parsed_arguments.positional_arguments[2];
 	auto output_filename = parsed_arguments.positional_arguments[3];
@@ -139,9 +151,9 @@ Options:
 	} else {
 		try {
 			if ("no-id" in parsed_arguments.flag_arguments) {
-				sponsor_times = get_video_skip_times_private(video_id, categories, api_url);
+				sponsor_times = get_video_skip_times_private(video_id, categories, api_url, proxy);
 			} else {
-				sponsor_times = get_video_skip_times_direct(video_id, categories, api_url);
+				sponsor_times = get_video_skip_times_direct(video_id, categories, api_url, proxy);
 			}
 		}	catch (std.net.curl.HTTPStatusException e) {
 			if (e.status == 404) {
@@ -151,7 +163,13 @@ Options:
 			}
 			return 3;
 		} catch (std.net.curl.CurlException e) {
-			writeln("Couldn't connect to the specified API url, try specifying a different one using the -api-url flag");
+			writeln("Couldn't connect to the Sponsorblock API");
+			if (proxy != "") {
+				writeln("Ensure your proxy is correctly configured");
+			}
+			if (api_url != "sponsor.ajay.app") {
+				writeln("Make sure the specified api url is correct");
+			}
 		}
 
 		if (sponsor_times.length > 0) {		
