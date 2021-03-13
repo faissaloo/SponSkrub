@@ -22,6 +22,8 @@ import std.math;
 import std.range;
 import std.array;
 import std.typecons;
+import std.datetime;
+import std.file;
 
 import core.sys.posix.signal;
 
@@ -47,6 +49,7 @@ int main(string[] args)
 			new ArgTemplate("include-selfpromo", true),
 			new ArgTemplate("include-nonmusic", true),
 			new ArgTemplate("no-id", true),
+			new ArgTemplate("keep-date", true),
 			new ArgTemplate("api-url", true, false, 1),
 		]);
 		
@@ -103,6 +106,9 @@ Options:
    Searches for sponsor data by the partial hash of the video id instead of
 	 directly requesting it.
 	 This adds a degree of privacy, but is slightly slower and uses more bandwidth.
+ 
+ -keep-date
+   Give the output file the same modification date as the input file.
 ");
 		return 1;
 	}
@@ -189,6 +195,10 @@ Options:
 			}
 			
 			if (ffmpeg_status) {
+				if ("keep-date" in parsed_arguments.flag_arguments) {
+					copy_file_modified_time(input_filename, output_filename);
+				}
+				
 				writeln("Done!");
 				return 0;
 			} else {
@@ -224,4 +234,10 @@ Categories[] categories_from_arguments(Args arguments) {
 	}
 	
 	return categories;
+}
+
+void copy_file_modified_time(string source, string destination) {
+	SysTime accessTime, modificationTime;
+	getTimes(source, accessTime, modificationTime);
+	setTimes(destination, accessTime, modificationTime);
 }
