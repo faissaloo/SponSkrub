@@ -15,6 +15,7 @@
  along with SponSkrub.  If not, see <https://www.gnu.org/licenses/>.
 */
 module ffwrap;
+import std.path;
 import std.typecons;
 import std.conv;
 import std.process;
@@ -83,7 +84,7 @@ bool run_ffmpeg_filter(string input_filename, string output_filename, string fil
 	args = ["ffmpeg", "-loglevel", "warning", "-hide_banner", "-stats", "-i", input_filename];
 	
 	if (metadata != "") {
-		metadata_filename = prepend_random_prefix(6, "-metadata.ffm");
+		metadata_filename = generate_metadata_filename();
 		write_metadata(metadata_filename, metadata);
 		args ~= ["-i", metadata_filename, "-map_metadata", "0", "-map_chapters", "1"];
 	}
@@ -100,7 +101,7 @@ bool run_ffmpeg_filter(string input_filename, string output_filename, string fil
 }
 
 bool add_ffmpeg_metadata(string input_filename, string output_filename, string metadata) {
-	string metadata_filename = prepend_random_prefix(6, "-metadata.ffm");
+	string metadata_filename = generate_metadata_filename();
 	scope(exit) {
 		remove(metadata_filename);
 	}
@@ -124,4 +125,8 @@ auto write_metadata(string filename, string metadata) {
 string prepend_random_prefix(int length, string suffix) {
 	auto prefix = iota(length).map!((_) => "abcdefghijklmnopqrstuvwxyz0123456789"[uniform(0,$)]).array;
 	return prefix ~ suffix;
+}
+
+string generate_metadata_filename() {
+	return tempDir.buildPath(prepend_random_prefix(6, "-metadata.ffm"));
 }
