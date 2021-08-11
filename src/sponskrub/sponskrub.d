@@ -49,6 +49,7 @@ int main(string[] args)
 			new ArgTemplate("include-selfpromo", true),
 			new ArgTemplate("include-nonmusic", true),
 			new ArgTemplate("no-id", true),
+			new ArgTemplate("force-http", true),
 			new ArgTemplate("keep-date", true),
 			new ArgTemplate("api-url", true, false, 1),
 			new ArgTemplate("proxy", true, false, 1),
@@ -113,8 +114,16 @@ Options:
 
  -proxy
    Allows you to specify a proxy to route any requests through
+
+ -force-http
+   By default sponskrub connects to the API via HTTPS, use this to force HTTP
 ");
 		return 1;
+	}
+	
+	bool force_http = false;
+	if ("force-http" in parsed_arguments.flag_arguments) {
+		force_http = true;
 	}
 	
 	string api_url;
@@ -151,9 +160,9 @@ Options:
 	} else {
 		try {
 			if ("no-id" in parsed_arguments.flag_arguments) {
-				sponsor_times = get_video_skip_times_private(video_id, categories, api_url, proxy);
+				sponsor_times = get_video_skip_times_private(video_id, categories, api_url, proxy, force_http);
 			} else {
-				sponsor_times = get_video_skip_times_direct(video_id, categories, api_url, proxy);
+				sponsor_times = get_video_skip_times_direct(video_id, categories, api_url, proxy, force_http);
 			}
 		}	catch (std.net.curl.HTTPStatusException e) {
 			if (e.status == 404) {
