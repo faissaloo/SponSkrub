@@ -51,7 +51,7 @@ string stringify_timestamp(JSONValue raw_timestamp) {
 }
 
 ClipTime[] get_video_skip_times_direct(string video_id, Categories[] categories, string api_url, string proxy="") {
-	auto data = proxy_get("http://%s/api/skipSegments?videoID=%s&categories=%s".format(api_url, video_id, `["`~(cast(string[])categories).join(`", "`)~`"]`), proxy);
+	auto data = proxy_get("http://%s/api/skipSegments?videoID=%s&categories=%s".format(api_url, video_id, `["`~(cast(string[])categories).join(`","`)~`"]`), proxy);
 	auto json = parseJSON(data);
 	//This array needs sorting or whatever so they get lined up properly
 	//Or maybe we should get the thing that figures out the times to do that?
@@ -61,7 +61,7 @@ ClipTime[] get_video_skip_times_direct(string video_id, Categories[] categories,
 }
 
 ClipTime[] get_video_skip_times_private(string video_id, Categories[] categories, string api_url, string proxy="") {
-	auto data = proxy_get("http://%s/api/skipSegments/%s?categories=%s".format(api_url, sha256Of(video_id).toHexString!(LetterCase.lower)[0..uniform(3,32)], `["`~(cast(string[])categories).join(`", "`)~`"]`), proxy);
+	auto data = proxy_get("http://%s/api/skipSegments/%s?categories=%s".format(api_url, sha256Of(video_id).toHexString!(LetterCase.lower)[0..uniform(3,32)], `["`~(cast(string[])categories).join(`","`)~`"]`), proxy);
 	auto json = parseJSON(data);
 	foreach (JSONValue video; json.array) {
 		if (video["videoID"].str == video_id) {
